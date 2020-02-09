@@ -1,4 +1,5 @@
-# HTTP API for [Kalah game](https://en.wikipedia.org/wiki/Kalah).  
+# HTTP API for [Kalah game](https://en.wikipedia.org/wiki/Kalah)
+[![Build Status](https://travis-ci.org/silaev/kalah.svg?branch=master)](https://travis-ci.org/silaev/kalah)
 
 #### Prerequisite
 - Java 11

@@ -12,5 +12,5 @@ The project ought to be built by means of Gradle. For that reason, run `gradlew 
 Subsequently, to start the application make use of `gradlew bootRun`
 
 #### Future improvements
-1. Recon the use of Spring Security Oath2;
+1. Reckon the use of Spring Security Oath2;
 2. Improve code coverage.

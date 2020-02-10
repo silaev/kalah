@@ -29,7 +29,7 @@ public class KalahServiceImpl implements KalahService {
 
     @Override
     public int createNewGame() {
-        return kalahDao.create(getInitializedStore());
+        return kalahDao.create(KalahGameState.builder().build(), getInitializedStore());
     }
 
     @Override
@@ -46,14 +46,13 @@ public class KalahServiceImpl implements KalahService {
         }
 
         try {
-            final Cell[] cells = kalahGameState.getCells();
-            final Cell cell = cells[cellIndex];
+            final Cell cell = kalahDao.getCellByGameIdAndCellIndex(gameId, cellIndex);
             verifyGameStatus(kalahGameState.getStatus());
             verifyPlayer(player, cell, kalahGameState.getPlayerToMakeMove(), kalahGameState.getStatus());
 
             int stoneCounter = cell.getStoneCount();
             verifyCellToMove(cell.getCellType(), stoneCounter);
-            int stoneCountTotalWithoutKalah = getCurrentPlayerStoneTotal(player, cells);
+            int stoneCountTotalWithoutKalah = getCurrentPlayerStoneTotal(player, gameId);
             final boolean isLastMove = stoneCountTotalWithoutKalah == stoneCounter;
             cell.setStoneCount(0);
 
@@ -65,24 +64,28 @@ public class KalahServiceImpl implements KalahService {
                 if (currentCellIndex == CELL_TOTAL) {
                     currentCellIndex = 0;
                 }
-                final Cell currentCellEntity = cells[currentCellIndex];
+                final Cell currentCellEntity = kalahDao.getCellByGameIdAndCellIndex(gameId, currentCellIndex);
 
                 if (isNotOpponentKalah(player, currentCellEntity)) {
                     stoneCounter--;
 
                     if (isLastCellEmptyAndBelongsToCurrentPlayer(player, currentCellEntity, stoneCounter)) {
-                        playerToMakeNextMove = processLastMove(player, cells, currentCellIndex, playerToMakeNextMove, currentCellEntity);
+                        playerToMakeNextMove =
+                            processLastMove(player, gameId, currentCellIndex, playerToMakeNextMove, currentCellEntity);
                     } else {
                         currentCellEntity.setStoneCount(currentCellEntity.getStoneCount() + 1);
                     }
                 }
             }
 
-            final GameStatus status = getStatus(player, cells, isLastMove);
+            final GameStatus status = getStatus(player, gameId, isLastMove);
             kalahGameState.setStatus(status);
             kalahGameState.setPlayerToMakeMove(status == GameStatus.IN_PROGRESS ? playerToMakeNextMove : null);
 
-            return kalahGameStateDtoConverter.convert(kalahGameState);
+            return kalahGameStateDtoConverter.convert(
+                kalahGameState,
+                kalahDao.getCellsIndexByGameIdAndCellIndex(gameId)
+            );
         } finally {
             lock.unlock();
         }
@@ -90,7 +93,7 @@ public class KalahServiceImpl implements KalahService {
 
     private Player processLastMove(
         final Player player,
-        final Cell[] cells,
+        final int gameId,
         final int currentCellIndex,
         final Player playerToMakeNextMove,
         final Cell currentCellEntity
@@ -100,13 +103,13 @@ public class KalahServiceImpl implements KalahService {
             return player;
         } else {
             final int oppositeCellIndex = CELL_TOTAL - currentCellEntity.getId() - 1;
-            final Cell oppositeCellEntity = cells[oppositeCellIndex];
+            final Cell oppositeCellEntity = kalahDao.getCellByGameIdAndCellIndex(gameId, oppositeCellIndex);
             final int oppositeCellStoneCount = oppositeCellEntity.getStoneCount();
             if (oppositeCellStoneCount > 0) {
-                cells[oppositeCellIndex].setStoneCount(0);
+                kalahDao.getCellByGameIdAndCellIndex(gameId, oppositeCellIndex).setStoneCount(0);
                 final int playerKalahIndex = getPlayerKalah(currentCellIndex);
-                cells[playerKalahIndex].setStoneCount(
-                    cells[playerKalahIndex].getStoneCount() + oppositeCellStoneCount + 1
+                kalahDao.getCellByGameIdAndCellIndex(gameId, playerKalahIndex).setStoneCount(
+                    kalahDao.getCellByGameIdAndCellIndex(gameId, playerKalahIndex).getStoneCount() + oppositeCellStoneCount + 1
                 );
             } else {
                 currentCellEntity.setStoneCount(currentCellEntity.getStoneCount() + 1);
@@ -116,7 +119,7 @@ public class KalahServiceImpl implements KalahService {
     }
 
     private KalahGameState getKalahGameState(int gameId) {
-        return Optional.ofNullable(kalahDao.getById(gameId))
+        return Optional.ofNullable(kalahDao.getGameStateById(gameId))
             .orElseThrow(() -> new IllegalArgumentException(
                     String.format("Cannot find a game by id: %d", gameId)
                 )
@@ -132,10 +135,10 @@ public class KalahServiceImpl implements KalahService {
             );
     }
 
-    private GameStatus getStatus(Player player, Cell[] cells, boolean isLastMove) {
+    private GameStatus getStatus(Player player, int gameId, boolean isLastMove) {
         GameStatus gameStatus;
         if (isLastMove) {
-            int currentPlayerStoneCountOverall = cells[player == Player.A ? 6 : 13].getStoneCount();
+            int currentPlayerStoneCountOverall = kalahDao.getCellByGameIdAndCellIndex(gameId, player == Player.A ? 6 : 13).getStoneCount();
             int opponentPlayerStoneCountOverall = STONE_TOTAL - currentPlayerStoneCountOverall;
             if (currentPlayerStoneCountOverall == opponentPlayerStoneCountOverall) {
                 gameStatus = GameStatus.DRAW;
@@ -152,12 +155,12 @@ public class KalahServiceImpl implements KalahService {
         return gameStatus;
     }
 
-    private int getCurrentPlayerStoneTotal(final Player player, Cell[] cells) {
+    private int getCurrentPlayerStoneTotal(final Player player, int gameId) {
         int currentIndex = player == Player.A ? 0 : 7;
         int lastIndex = player == Player.A ? 5 : 12;
 
         return IntStream.rangeClosed(currentIndex, lastIndex)
-            .mapToObj(i -> cells[i])
+            .mapToObj(i -> kalahDao.getCellByGameIdAndCellIndex(gameId, i))
             .mapToInt(Cell::getStoneCount)
             .sum();
     }
@@ -173,12 +176,10 @@ public class KalahServiceImpl implements KalahService {
         }
     }
 
-    private KalahGameState getInitializedStore() {
-        final Cell[] cells = new Cell[CELL_TOTAL];
-        for (int i = 1; i <= CELL_TOTAL; i++) {
-            cells[i - 1] = (i % 7 == 0) ? getKalahCell(i) : getPitCell(i);
-        }
-        return KalahGameState.builder().cells(cells).build();
+    private Cell[] getInitializedStore() {
+        return IntStream.rangeClosed(1, CELL_TOTAL)
+            .mapToObj(i -> (i % 7 == 0) ? getKalahCell(i) : getPitCell(i))
+            .toArray(Cell[]::new);
     }
 
     private Cell getPitCell(int i) {
@@ -218,7 +219,7 @@ public class KalahServiceImpl implements KalahService {
             return 13;
         } else {
             throw new IllegalArgumentException(
-                String.format("Cannot get a kalah cell of player by index: %d", index)
+                String.format("Cannot getCellByGameIdAndCellIndex a kalah cell of player by index: %d", index)
             );
         }
     }
@@ -250,7 +251,7 @@ public class KalahServiceImpl implements KalahService {
         if (status == GameStatus.IN_PROGRESS) {
             if (playerToMakeMove != null && playerToMakeMove != player) {
                 throw new IllegalStateException(
-                    String.format("Player: %s is supposed to make a move.", player)
+                    String.format("Player: %s is supposed to make a move.", playerToMakeMove)
                 );
             }
 

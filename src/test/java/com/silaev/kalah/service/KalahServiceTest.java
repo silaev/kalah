@@ -8,6 +8,7 @@ import com.silaev.kalah.model.Cell;
 import com.silaev.kalah.model.CellType;
 import com.silaev.kalah.model.GameStatus;
 import com.silaev.kalah.model.KalahGameState;
+import com.silaev.kalah.model.Pair;
 import com.silaev.kalah.model.Player;
 import com.silaev.kalah.service.impl.KalahServiceImpl;
 import org.junit.jupiter.api.Test;
@@ -15,6 +16,8 @@ import org.junit.jupiter.api.function.Executable;
 import org.mockito.MockitoAnnotations;
 
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.ReentrantLock;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -75,12 +78,12 @@ class KalahServiceTest {
     @Test
     void shouldTestLastMove() {
         //GIVEN
-        final KalahDao kalahDao = mock(KalahDao.class);
+        final int gameId = 1;
+        final ConcurrentMap<Integer, Pair<KalahGameState, Cell[]>> store = new ConcurrentHashMap<>();
+        store.put(gameId, Pair.of(getMockGameState(), getInitializedMockStore()));
+        final KalahDao kalahDao = new KalahDaoImpl(store);
         final KalahGameStateDtoConverter kalahGameStateDtoConverter = new KalahGameStateDtoConverter();
         final KalahService gameService = new KalahServiceImpl(kalahDao, kalahGameStateDtoConverter);
-        MockitoAnnotations.initMocks(this);
-        final int gameId = 1;
-        when(kalahDao.getById(gameId)).thenReturn(getInitializedMockStore());
 
         //WHEN
         final KalahGameStateDto kalahGameStateDto = gameService.makeMove(gameId, 13, Player.B);
@@ -103,6 +106,13 @@ class KalahServiceTest {
         assertNull(kalahGameStateDto.getPlayerToMakeMove());
         assertEquals(KalahServiceImpl.STONE_TOTAL, getTotal(statuses));
         assertEquals(GameStatus.WON_BY_PLAYER_A, kalahGameStateDto.getGameStatus());
+    }
+
+    private KalahGameState getMockGameState() {
+        return KalahGameState.builder()
+            .playerToMakeMove(Player.B)
+            .status(GameStatus.IN_PROGRESS)
+            .build();
     }
 
     @Test
@@ -132,7 +142,7 @@ class KalahServiceTest {
         MockitoAnnotations.initMocks(this);
         final int gameId = 1;
         final KalahGameState kalahGameState = mock(KalahGameState.class);
-        when(kalahDao.getById(gameId)).thenReturn(kalahGameState);
+        when(kalahDao.getGameStateById(gameId)).thenReturn(kalahGameState);
         final ReentrantLock lock = mock(ReentrantLock.class);
         when(kalahGameState.getLock()).thenReturn(lock);
         when(lock.tryLock()).thenReturn(false);
@@ -145,7 +155,7 @@ class KalahServiceTest {
         assertThrows(IllegalStateException.class, executable);
     }
 
-    private KalahGameState getInitializedMockStore() {
+    private Cell[] getInitializedMockStore() {
         final Cell[] cells = new Cell[KalahServiceImpl.CELL_TOTAL];
         cells[0] = mockPitCell(1, 0);
         cells[1] = mockPitCell(2, 2);
@@ -161,11 +171,7 @@ class KalahServiceTest {
         cells[11] = mockPitCell(12, 0);
         cells[12] = mockPitCell(13, 7);
         cells[13] = mockPitCell(14, 26);
-        return KalahGameState.builder()
-            .cells(cells)
-            .playerToMakeMove(Player.B)
-            .status(GameStatus.IN_PROGRESS)
-            .build();
+        return cells;
     }
 
     private Cell mockPitCell(

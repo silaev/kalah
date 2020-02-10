@@ -16,7 +16,6 @@ import java.util.concurrent.locks.ReentrantLock;
 @ToString
 @EqualsAndHashCode
 public class KalahGameState {
-    private final Cell[] cells;
     @Builder.Default
     private final ReentrantLock lock = new ReentrantLock();
     @Setter

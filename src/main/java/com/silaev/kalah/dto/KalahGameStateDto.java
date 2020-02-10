@@ -19,5 +19,5 @@ import java.util.Map;
 public class KalahGameStateDto {
     private final Map<Integer, Integer> statuses;
     private final Player playerToMakeMove;
-    private final GameStatus status;
+    private final GameStatus gameStatus;
 }

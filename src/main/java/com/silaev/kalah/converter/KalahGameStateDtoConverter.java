@@ -37,7 +37,7 @@ public class KalahGameStateDtoConverter implements Converter<KalahGameState, Kal
 
         return KalahGameStateDto.builder()
             .playerToMakeMove(source.getPlayerToMakeMove())
-            .status(source.getStatus())
+            .gameStatus(source.getStatus())
             .statuses(statuses)
             .build();
     }

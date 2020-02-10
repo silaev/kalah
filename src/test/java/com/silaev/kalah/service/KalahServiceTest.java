@@ -65,7 +65,7 @@ class KalahServiceTest {
 
         assertEquals(KalahServiceImpl.STONE_TOTAL, getTotal(statuses));
         assertEquals(Player.B, kalahGameStateDto.getPlayerToMakeMove());
-        assertEquals(GameStatus.IN_PROGRESS, kalahGameStateDto.getStatus());
+        assertEquals(GameStatus.IN_PROGRESS, kalahGameStateDto.getGameStatus());
     }
 
     private int getTotal(Map<Integer, Integer> statuses) {
@@ -102,7 +102,7 @@ class KalahServiceTest {
         assertEquals(Integer.valueOf(27), statuses.get(14));
         assertNull(kalahGameStateDto.getPlayerToMakeMove());
         assertEquals(KalahServiceImpl.STONE_TOTAL, getTotal(statuses));
-        assertEquals(GameStatus.WON_BY_PLAYER_A, kalahGameStateDto.getStatus());
+        assertEquals(GameStatus.WON_BY_PLAYER_A, kalahGameStateDto.getGameStatus());
     }
 
     @Test

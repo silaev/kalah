@@ -14,6 +14,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.function.Executable;
 import org.mockito.MockitoAnnotations;
 
+import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -44,25 +45,31 @@ class KalahServiceTest {
         gameService.makeMove(gameId, 9, Player.B);
         final KalahGameStateDto kalahGameStateDto =
             gameService.makeMove(gameId, 6, Player.A);
-        final Cell[] cells = kalahGameStateDto.getCells();
+        final Map<Integer, Integer> statuses = kalahGameStateDto.getStatuses();
 
         //WHEN
-        assertEquals(3, cells[0].getStoneCount());
-        assertEquals(3, cells[1].getStoneCount());
-        assertEquals(0, cells[2].getStoneCount());
-        assertEquals(0, cells[3].getStoneCount());
-        assertEquals(10, cells[4].getStoneCount());
-        assertEquals(0, cells[5].getStoneCount());
-        assertEquals(2, cells[7].getStoneCount());
-        assertEquals(1, cells[8].getStoneCount());
-        assertEquals(12, cells[9].getStoneCount());
-        assertEquals(0, cells[10].getStoneCount());
-        assertEquals(11, cells[11].getStoneCount());
-        assertEquals(10, cells[12].getStoneCount());
-        assertEquals(2, cells[13].getStoneCount());
+        assertEquals(Integer.valueOf(3), statuses.get(1));
+        assertEquals(Integer.valueOf(3), statuses.get(2));
+        assertEquals(Integer.valueOf(0), statuses.get(3));
+        assertEquals(Integer.valueOf(0), statuses.get(4));
+        assertEquals(Integer.valueOf(10), statuses.get(5));
+        assertEquals(Integer.valueOf(0), statuses.get(6));
+        assertEquals(Integer.valueOf(18), statuses.get(7));
+        assertEquals(Integer.valueOf(2), statuses.get(8));
+        assertEquals(Integer.valueOf(1), statuses.get(9));
+        assertEquals(Integer.valueOf(12), statuses.get(10));
+        assertEquals(Integer.valueOf(0), statuses.get(11));
+        assertEquals(Integer.valueOf(11), statuses.get(12));
+        assertEquals(Integer.valueOf(10), statuses.get(13));
+        assertEquals(Integer.valueOf(2), statuses.get(14));
 
+        assertEquals(KalahServiceImpl.STONE_TOTAL, getTotal(statuses));
         assertEquals(Player.B, kalahGameStateDto.getPlayerToMakeMove());
         assertEquals(GameStatus.IN_PROGRESS, kalahGameStateDto.getStatus());
+    }
+
+    private int getTotal(Map<Integer, Integer> statuses) {
+        return statuses.values().stream().mapToInt(c -> c).sum();
     }
 
     @Test
@@ -77,24 +84,24 @@ class KalahServiceTest {
 
         //WHEN
         final KalahGameStateDto kalahGameStateDto = gameService.makeMove(gameId, 13, Player.B);
-        final Cell[] cells = kalahGameStateDto.getCells();
-
+        final Map<Integer, Integer> statuses = kalahGameStateDto.getStatuses();
         //WHEN
-        assertEquals(1, cells[0].getStoneCount());
-        assertEquals(3, cells[1].getStoneCount());
-        assertEquals(4, cells[2].getStoneCount());
-        assertEquals(3, cells[3].getStoneCount());
-        assertEquals(7, cells[4].getStoneCount());
-        assertEquals(1, cells[5].getStoneCount());
-        assertEquals(26, cells[6].getStoneCount());
-        assertEquals(0, cells[7].getStoneCount());
-        assertEquals(0, cells[8].getStoneCount());
-        assertEquals(0, cells[9].getStoneCount());
-        assertEquals(0, cells[10].getStoneCount());
-        assertEquals(0, cells[11].getStoneCount());
-        assertEquals(0, cells[12].getStoneCount());
-        assertEquals(27, cells[13].getStoneCount());
+        assertEquals(Integer.valueOf(1), statuses.get(1));
+        assertEquals(Integer.valueOf(3), statuses.get(2));
+        assertEquals(Integer.valueOf(4), statuses.get(3));
+        assertEquals(Integer.valueOf(3), statuses.get(4));
+        assertEquals(Integer.valueOf(7), statuses.get(5));
+        assertEquals(Integer.valueOf(1), statuses.get(6));
+        assertEquals(Integer.valueOf(26), statuses.get(7));
+        assertEquals(Integer.valueOf(0), statuses.get(8));
+        assertEquals(Integer.valueOf(0), statuses.get(9));
+        assertEquals(Integer.valueOf(0), statuses.get(10));
+        assertEquals(Integer.valueOf(0), statuses.get(11));
+        assertEquals(Integer.valueOf(0), statuses.get(12));
+        assertEquals(Integer.valueOf(0), statuses.get(13));
+        assertEquals(Integer.valueOf(27), statuses.get(14));
         assertNull(kalahGameStateDto.getPlayerToMakeMove());
+        assertEquals(KalahServiceImpl.STONE_TOTAL, getTotal(statuses));
         assertEquals(GameStatus.WON_BY_PLAYER_A, kalahGameStateDto.getStatus());
     }
 

@@ -6,7 +6,11 @@ import com.silaev.kalah.model.KalahGameState;
 import org.springframework.core.convert.converter.Converter;
 import org.springframework.stereotype.Component;
 
-import java.util.Arrays;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * @author Konstantin Silaev on 2/9/2020
@@ -15,14 +19,26 @@ import java.util.Arrays;
 public class KalahGameStateDtoConverter implements Converter<KalahGameState, KalahGameStateDto> {
     @Override
     public KalahGameStateDto convert(KalahGameState source) {
-        final Cell[] cells = Arrays.stream(source.getCells())
-            .map(c -> c.toBuilder().build())
-            .toArray(Cell[]::new);
+        final Map<Integer, Integer> statuses = Stream.of(source.getCells())
+            .collect(
+                Collectors.collectingAndThen(
+                    Collectors.toMap(
+                        Cell::getId,
+                        Cell::getStoneCount,
+                        (Integer k, Integer v) -> {
+                            throw new IllegalStateException(String.format("Collision among key: %d", k));
+                        },
+                        LinkedHashMap::new
+
+                    ),
+                    Collections::unmodifiableMap
+                )
+            );
 
         return KalahGameStateDto.builder()
             .playerToMakeMove(source.getPlayerToMakeMove())
             .status(source.getStatus())
-            .cells(cells)
+            .statuses(statuses)
             .build();
     }
 }

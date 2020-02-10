@@ -23,7 +23,7 @@ import java.util.stream.IntStream;
 @RequiredArgsConstructor
 public class KalahServiceImpl implements KalahService {
     public static final int CELL_TOTAL = 14;
-    private static final int STONE_TOTAL = 72;
+    public static final int STONE_TOTAL = 72;
     private final KalahDao kalahDao;
     private final KalahGameStateDtoConverter kalahGameStateDtoConverter;
 
@@ -40,7 +40,10 @@ public class KalahServiceImpl implements KalahService {
         final int cellIndex = pitId - 1;
         final ReentrantLock lock = getLock(gameId, kalahGameState);
 
-        checkLock(gameId, lock);
+        if (!lock.tryLock()) {
+            throw new IllegalStateException(
+                String.format("Game: %d is busy. Please, try again later on", gameId));
+        }
 
         try {
             final Cell[] cells = kalahGameState.getCells();
@@ -93,27 +96,23 @@ public class KalahServiceImpl implements KalahService {
         final Cell currentCellEntity
     ) {
         if (currentCellEntity.getCellType() == CellType.KALAH) {
+            currentCellEntity.setStoneCount(currentCellEntity.getStoneCount() + 1);
             return player;
         } else {
-            final int oppositeCellIndex = 14 - currentCellEntity.getId() - 1;
+            final int oppositeCellIndex = CELL_TOTAL - currentCellEntity.getId() - 1;
             final Cell oppositeCellEntity = cells[oppositeCellIndex];
             final int oppositeCellStoneCount = oppositeCellEntity.getStoneCount();
             if (oppositeCellStoneCount > 0) {
                 cells[oppositeCellIndex].setStoneCount(0);
                 final int playerKalahIndex = getPlayerKalah(currentCellIndex);
-                cells[playerKalahIndex].setStoneCount(cells[playerKalahIndex].getStoneCount() + oppositeCellStoneCount + 1);
+                cells[playerKalahIndex].setStoneCount(
+                    cells[playerKalahIndex].getStoneCount() + oppositeCellStoneCount + 1
+                );
             } else {
                 currentCellEntity.setStoneCount(currentCellEntity.getStoneCount() + 1);
             }
         }
         return playerToMakeNextMove;
-    }
-
-    private void checkLock(int gameId, ReentrantLock lock) {
-        if (!lock.tryLock()) {
-            throw new IllegalStateException(
-                String.format("Game: %d is busy. Please, try again later on", gameId));
-        }
     }
 
     private KalahGameState getKalahGameState(int gameId) {
@@ -215,7 +214,7 @@ public class KalahServiceImpl implements KalahService {
     private int getPlayerKalah(int index) {
         if (index < 7) {
             return 6;
-        } else if (index < 14) {
+        } else if (index < CELL_TOTAL) {
             return 13;
         } else {
             throw new IllegalArgumentException(

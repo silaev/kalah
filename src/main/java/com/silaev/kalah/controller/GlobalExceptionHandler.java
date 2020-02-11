@@ -13,6 +13,16 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 @Slf4j
 @ControllerAdvice
 public class GlobalExceptionHandler {
+    @ExceptionHandler({IllegalStateException.class, IllegalArgumentException.class})
+    public ResponseEntity<ErrorMessage> handleException(Exception e) {
+        log.debug(
+            "GlobalExceptionHandler: handleException. message: {}, cause: {}",
+            e.getMessage(), e.getCause()
+        );
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+            .body(ErrorMessage.builder().message(e.getMessage()).build());
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorMessage> handleGeneralException(Exception e) {
         log.debug(
@@ -20,6 +30,10 @@ public class GlobalExceptionHandler {
             e.getMessage(), e.getCause()
         );
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-            .body(ErrorMessage.builder().message(e.getMessage()).build());
+            .body(
+                ErrorMessage.builder()
+                    .message("Internal error occurred, please contact an administrator")
+                    .build()
+            );
     }
 }

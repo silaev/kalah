@@ -1,6 +1,7 @@
 package com.silaev.kalah.service;
 
 import com.silaev.kalah.converter.KalahGameStateDtoConverter;
+import com.silaev.kalah.converter.impl.KalahGameStateDtoConverterImpl;
 import com.silaev.kalah.dao.KalahDao;
 import com.silaev.kalah.dao.KalahDaoImpl;
 import com.silaev.kalah.dto.KalahGameStateDto;
@@ -15,9 +16,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.function.Executable;
 import org.mockito.MockitoAnnotations;
 
+import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.ReentrantLock;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -33,8 +33,9 @@ class KalahServiceTest {
     @Test
     void shouldTestAcquiringOpponentPit() {
         //GIVEN
-        final KalahDao kalahDao = new KalahDaoImpl();
-        final KalahGameStateDtoConverter kalahGameStateDtoConverter = new KalahGameStateDtoConverter();
+        final Map<Integer, Pair<KalahGameState, Cell[]>> store = new HashMap<>();
+        final KalahDao kalahDao = new KalahDaoImpl(store);
+        final KalahGameStateDtoConverter kalahGameStateDtoConverter = new KalahGameStateDtoConverterImpl();
         final KalahService gameService = new KalahServiceImpl(kalahDao, kalahGameStateDtoConverter);
         final int gameId = gameService.createNewGame();
 
@@ -79,16 +80,17 @@ class KalahServiceTest {
     void shouldTestLastMove() {
         //GIVEN
         final int gameId = 1;
-        final ConcurrentMap<Integer, Pair<KalahGameState, Cell[]>> store = new ConcurrentHashMap<>();
+        final Map<Integer, Pair<KalahGameState, Cell[]>> store = new HashMap<>();
         store.put(gameId, Pair.of(getMockGameState(), getInitializedMockStore()));
         final KalahDao kalahDao = new KalahDaoImpl(store);
-        final KalahGameStateDtoConverter kalahGameStateDtoConverter = new KalahGameStateDtoConverter();
+        final KalahGameStateDtoConverter kalahGameStateDtoConverter = new KalahGameStateDtoConverterImpl();
         final KalahService gameService = new KalahServiceImpl(kalahDao, kalahGameStateDtoConverter);
 
         //WHEN
         final KalahGameStateDto kalahGameStateDto = gameService.makeMove(gameId, 13, Player.B);
         final Map<Integer, Integer> statuses = kalahGameStateDto.getStatuses();
-        //WHEN
+
+        //THEN
         assertEquals(Integer.valueOf(1), statuses.get(1));
         assertEquals(Integer.valueOf(3), statuses.get(2));
         assertEquals(Integer.valueOf(4), statuses.get(3));

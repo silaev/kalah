@@ -33,7 +33,7 @@ lombok {
 }
 
 springBoot {
-    mainClassName = 'com.silaev.wms.WmsApplication'
+    mainClassName = 'com.silaev.kalah.KalahApplication'
 }
 
 ext['mockito.version'] = "${mockitoVersion}"

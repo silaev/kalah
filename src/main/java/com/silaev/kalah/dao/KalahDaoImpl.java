@@ -20,10 +20,14 @@ import java.util.stream.Stream;
  */
 @Repository
 public class KalahDaoImpl implements KalahDao {
-    private final ConcurrentMap<Integer, Pair<KalahGameState, Cell[]>> store;
+    private final Map<Integer, Pair<KalahGameState, Cell[]>> store;
 
     public KalahDaoImpl() {
         this.store = new ConcurrentHashMap<>();
+    }
+
+    public KalahDaoImpl(Map<Integer, Pair<KalahGameState, Cell[]>> store) {
+        this.store = store;
     }
 
     public KalahDaoImpl(final ConcurrentMap<Integer, Pair<KalahGameState, Cell[]>> store) {
